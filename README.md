@@ -1,170 +1,187 @@
 # Money Transfer App
 
-By Oliver Moosberger
+A full-stack fintech wallet & P2P money transfer platform built to solve real problems with existing remittance apps: high fees, complex onboarding, lack of access for the unbanked, weak security, and poor admin visibility.
 
-## Description
+**Live Demo:** _coming soon_  
+**Author:** [Oliver Moosberger](https://github.com/olivermooz-117) · olivermooz@gmail.com
 
-Money Transfer App is a fintech wallet and remittance platform built to tackle five real problems with existing money transfer apps: high transaction fees, complex onboarding, poor access for unbanked/underbanked users, security/fraud risk, and lack of interoperability for cross-border transfers. Every user gets a wallet the moment they register (no bank account required), fees are capped low and shown up front, and admins get full visibility into users, transactions, and platform-wide trends.
+---
 
-## Technologies Used
+## Problem → Solution
 
-**Backend:** Python, Flask, Flask-SQLAlchemy, Flask-JWT-Extended, Flask-Bcrypt, PostgreSQL, pytest
-**Frontend:** React, Redux Toolkit, React Router, Axios, Vite, Jest + React Testing Library
-**Design:** Figma (mobile-first wireframes)
+| Problem | How this app addresses it |
+|---------|---------------------------|
+| High transaction fees | Transparent 1% fee, hard-capped at 100 units |
+| Complex onboarding | Register with name + email + password → wallet created instantly |
+| Unbanked / underbanked | No bank account or card required |
+| Security & fraud risk | bcrypt passwords, JWT auth, admin-gated routes |
+| No platform visibility | Full admin dashboard with users, transactions, analytics & monthly fee revenue |
+
+---
+
+## Tech Stack
+
+**Backend**  
+Python · Flask · Flask-SQLAlchemy · Flask-JWT-Extended · Flask-Bcrypt · PostgreSQL · pytest
+
+**Frontend**  
+React 18 · Redux Toolkit · React Router · Axios · Vite · Jest + React Testing Library
+
+**Design**  
+Mobile-first wireframes (Figma)
+
+---
+
+## Features
+
+### User
+- Register / Login
+- Wallet balance + 30-day analytics
+- Add funds
+- Manage beneficiaries
+- Send money (fee shown transparently)
+- Transaction history
+
+### Admin
+- CRUD on all users
+- View every transaction
+- Platform-wide analytics (users, total balance, volume, fees collected)
+- Monthly profit (fee revenue) trends
+
+---
 
 ## Project Structure
-
-```
-money-transfer-app/
+Money-Transfer-App/
 ├── backend/
 │   ├── app/
-│   │   ├── models/        # User, Wallet, Beneficiary, Transaction
-│   │   ├── routes/        # auth, users, wallet, beneficiaries, transactions, admin
-│   │   ├── utils/         # admin_required decorator
+│   │   ├── models/          # User, Wallet, Beneficiary, Transaction
+│   │   ├── routes/          # auth, users, wallet, beneficiaries, transactions, admin
+│   │   ├── utils/           # admin_required decorator
 │   │   ├── config.py
 │   │   └── extensions.py
-│   ├── tests/              # pytest suite
-│   ├── seed.py              # creates tables + demo data
-│   ├── run.py                # entrypoint
-│   └── Pipfile
+│   ├── tests/
+│   ├── seed.py
+│   └── run.py
 └── frontend/
-    ├── src/
-    │   ├── api/axios.js      # shared axios instance with auth header
-    │   ├── app/store.js      # Redux store
-    │   ├── features/         # auth, wallet, beneficiaries, transactions, admin
-    │   └── components/        # Navbar, ProtectedRoute
-    └── package.json
-```
+├── src/
+│   ├── api/
+│   ├── app/             # Redux store
+│   ├── features/        # auth, wallet, beneficiaries, transactions, admin
+│   └── components/
+└── package.json
+text---
 
-## MVP Features
+## Quick Start
 
-**As a user, I can:**
-- Create an account and log in
-- View my wallet analytics
-- View and update my profile
-- Add funds to my wallet
-- Add beneficiaries as contacts
-- Send money to a beneficiary
-- View a summary of my transactions
+### 1. Backend
 
-**As an admin, I can:**
-- Perform CRUD operations on all users and accounts
-- View a summary of all user transactions
-- View analytics of all wallet accounts
-- View profit (fee revenue) trends to support business decisions
+```bash
+cd backend
+cp .env.example .env
+# Edit .env → set DATABASE_URL and a strong JWT_SECRET_KEY
 
-## Backend Setup — Step by Step
+pipenv install && pipenv shell
+# or: python3 -m venv venv && source venv/bin/activate && pip install flask flask-sqlalchemy flask-migrate flask-jwt-extended flask-bcrypt flask-cors psycopg2-binary python-dotenv pytest
 
-1. **Install PostgreSQL** if you don't already have it, and create a database:
-   ```
-   createdb money_transfer_db
-   ```
-2. **Move into the backend folder:**
-   ```
-   cd backend
-   ```
-3. **Create your environment file:**
-   ```
-   cp .env.example .env
-   ```
-   Then edit `.env` and set `DATABASE_URL` to match your Postgres user/password, and set `JWT_SECRET_KEY` to a long random string.
-4. **Install dependencies** (using pipenv, matching your usual workflow):
-   ```
-   pipenv install
-   pipenv shell
-   ```
-   If you hit Python version issues (e.g. system Python doesn't match the Pipfile), fall back to:
-   ```
-   python3 -m venv venv
-   source venv/bin/activate
-   pip install flask flask-sqlalchemy flask-migrate flask-jwt-extended flask-bcrypt flask-cors psycopg2-binary python-dotenv pytest
-   ```
-5. **Create the tables and seed demo data:**
-   ```
-   python seed.py
-   ```
-   This prints three demo logins (one admin, two regular users) you can use immediately.
-6. **Run the server:**
-   ```
-   python run.py
-   ```
-   The API will be live at `http://localhost:5000/api`. Check `http://localhost:5000/api/health` to confirm it's running.
-7. **Run the test suite** (all 7 tests should pass):
-   ```
-   python -m pytest -v
-   ```
+python seed.py
+python run.py
+# → http://localhost:5000/api/health
+Demo logins:
 
-### Backend API Reference
+admin@moneyapp.com / Admin123!
+oliver@example.com / Password123!
+jane@example.com / Password123!
 
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| POST | /api/auth/register | — | Create a user + wallet |
-| POST | /api/auth/login | — | Get a JWT |
-| GET | /api/users/me | user | View own profile |
-| PUT | /api/users/me | user | Update own profile |
-| GET | /api/wallet | user | Balance + analytics |
-| POST | /api/wallet/add-funds | user | Top up wallet |
-| GET/POST | /api/beneficiaries | user | List / add beneficiaries |
-| DELETE | /api/beneficiaries/:id | user | Remove beneficiary |
-| POST | /api/transactions/send | user | Send money to a beneficiary |
-| GET | /api/transactions | user | Own transaction history |
-| GET | /api/admin/users | admin | List all users |
-| PUT/DELETE | /api/admin/users/:id | admin | Update/deactivate/delete a user |
-| GET | /api/admin/transactions | admin | All transactions |
-| GET | /api/admin/analytics | admin | Platform-wide totals |
-| GET | /api/admin/profit-trends | admin | Monthly fee revenue |
+2. Frontend
+Bashcd frontend
+cp .env.example .env
+# Confirm VITE_API_URL=http://localhost:5000/api
 
-## Frontend Setup — Step by Step
+npm install
+npm run dev
+# → http://localhost:5173
+3. Tests
+Bashcd backend && python -m pytest -v
+cd frontend && npm test
 
-1. **Move into the frontend folder:**
-   ```
-   cd frontend
-   ```
-2. **Create your environment file:**
-   ```
-   cp .env.example .env
-   ```
-   Confirm `VITE_API_URL=http://localhost:5000/api` points at your running backend.
-3. **Install dependencies:**
-   ```
-   npm install
-   ```
-4. **Run the dev server:**
-   ```
-   npm run dev
-   ```
-   Open the URL Vite prints (typically `http://localhost:5173`).
-5. **Run the Jest test suite:**
-   ```
-   npm test
-   ```
-6. **Build for production when ready to deploy:**
-   ```
-   npm run build
-   ```
-   The static output lands in `frontend/dist`.
+API Overview
 
-## Trying It End to End
 
-1. Start the backend (`python run.py`) and frontend (`npm run dev`).
-2. Register a new account, or log in with a seeded demo user (see `seed.py` output).
-3. Add funds to your wallet from the dashboard.
-4. Go to **Beneficiaries** and add another seeded user by their email (e.g. `jane@example.com`).
-5. Go to **Send money**, pick that beneficiary, and send an amount — you'll see the 1% fee (capped at 100) applied automatically.
-6. Log in as `admin@moneyapp.com` to see the admin views: all users, all transactions, platform analytics, and the monthly profit trend.
 
-## How This Addresses the Problem Statement
 
-- **High fees** → fee is capped at 1% (max 100 units), shown transparently in the response and in the transaction table.
-- **Complex onboarding** → registration only asks for name, email, password; a wallet is created automatically.
-- **Unbanked/underbanked access** → no bank account or card is required to hold or receive funds; wallet balance starts at 0 and is topped up in-app.
-- **Security** → passwords are hashed with bcrypt, all wallet/transaction endpoints require a JWT, and admin routes are separately gated.
-- **Interoperability** → the API is a standard REST/JSON service, and the fee/currency fields on `Wallet` and `Transaction` are structured to extend to multi-currency and cross-border transfers later.
 
-## Author
 
-Oliver Moosberger — GitHub: [olivermooz-117](https://github.com/olivermooz-117) · Email: olivermooz@gmail.com
 
-## License
 
-This project is open source and available for educational use.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+MethodEndpointAuthDescriptionPOST/api/auth/register—Create user + walletPOST/api/auth/login—Get JWTGET/api/walletuserBalance + analyticsPOST/api/wallet/add-fundsuserTop upGET/POST/api/beneficiariesuserList / addPOST/api/transactions/senduserSend moneyGET/api/transactionsuserOwn historyGET/api/admin/usersadminAll usersGET/api/admin/analyticsadminPlatform totalsGET/api/admin/profit-trendsadminMonthly fee revenue
+
+Architecture Decisions
+
+Wallet-first model — every user gets a wallet on registration.
+Transparent low fees — 1% with hard cap, calculated server-side.
+JWT + role claims — admin routes protected by is_admin claim.
+Feature-sliced frontend — Redux Toolkit slices mirror domain boundaries.
+Atomic transfers — money movement uses database row locking to prevent race conditions.
