@@ -15,7 +15,7 @@ def create_app(config_class=Config):
     cors.init_app(app, resources={r"/api/*": {"origins": "*"}})
 
     # --- import models so they register with SQLAlchemy before migrate/create_all ---
-    from app.models import user, wallet, beneficiary, transaction  # noqa: F401
+    from app.models import user, wallet, beneficiary, transaction, mpesa_deposit  # noqa: F401
 
     # --- register blueprints ---
     from app.routes.auth import auth_bp
@@ -24,6 +24,7 @@ def create_app(config_class=Config):
     from app.routes.beneficiaries import beneficiaries_bp
     from app.routes.transactions import transactions_bp
     from app.routes.admin import admin_bp
+    from app.routes.mpesa import mpesa_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(users_bp, url_prefix="/api/users")
@@ -31,6 +32,7 @@ def create_app(config_class=Config):
     app.register_blueprint(beneficiaries_bp, url_prefix="/api/beneficiaries")
     app.register_blueprint(transactions_bp, url_prefix="/api/transactions")
     app.register_blueprint(admin_bp, url_prefix="/api/admin")
+    app.register_blueprint(mpesa_bp, url_prefix="/api/mpesa")
 
     @app.errorhandler(404)
     def not_found(e):
