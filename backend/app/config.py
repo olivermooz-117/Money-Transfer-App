@@ -14,3 +14,17 @@ class Config:
     # Business rule: keep fees low to address the "high transaction fees" problem
     TRANSACTION_FEE_PERCENT = 0.01   # 1%
     TRANSACTION_FEE_CAP = 100.0      # never charge more than this, in wallet currency units
+
+    # M-Pesa Daraja API configuration
+    MPESA_ENV = os.environ.get("MPESA_ENV", "sandbox")
+    MPESA_CONSUMER_KEY = os.environ.get("MPESA_CONSUMER_KEY")
+    MPESA_CONSUMER_SECRET = os.environ.get("MPESA_CONSUMER_SECRET")
+    MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "174379")
+    MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY")
+    MPESA_CALLBACK_URL = os.environ.get("MPESA_CALLBACK_URL")
+
+    @property
+    def MPESA_BASE_URL(self):
+        if self.MPESA_ENV == "production":
+            return "https://api.safaricom.co.ke"
+        return "https://sandbox.safaricom.co.ke"
