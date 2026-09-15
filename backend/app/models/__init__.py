@@ -1,0 +1,1 @@
+from app.models import user, wallet, beneficiary, transaction, mpesa_deposit  # noqa: F401
