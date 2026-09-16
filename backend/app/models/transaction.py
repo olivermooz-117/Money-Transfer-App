@@ -1,35 +1,118 @@
-from datetime import datetime
+from decimal import Decimal
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import or_
 from app.extensions import db
+from app.models.wallet import Wallet
+from app.models.beneficiary import Beneficiary
+from app.models.user import User
+from app.models.transaction import Transaction
+
+transactions_bp = Blueprint("transactions", __name__)
 
 
-class Transaction(db.Model):
-    __tablename__ = "transactions"
+def _to_decimal(value) -> Decimal:
+    return Decimal(str(value))
 
-    id = db.Column(db.Integer, primary_key=True)
-    sender_wallet_id = db.Column(db.Integer, db.ForeignKey("wallets.id"), nullable=True)
-    receiver_wallet_id = db.Column(db.Integer, db.ForeignKey("wallets.id"), nullable=True)
-    amount = db.Column(db.Numeric(12, 2), nullable=False)
-    fee = db.Column(db.Numeric(12, 2), default=0, nullable=False)
-    type = db.Column(db.String(20), nullable=False)  # "deposit" | "transfer"
-    status = db.Column(db.String(20), default="completed", nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    sender_wallet = db.relationship("Wallet", foreign_keys=[sender_wallet_id])
-    receiver_wallet = db.relationship("Wallet", foreign_keys=[receiver_wallet_id])
+@transactions_bp.post("/send")
+@jwt_required()
+def send_money():
+    user_id = int(get_jwt_identity())
+    data = request.get_json() or {}
+    beneficiary_id = data.get("beneficiary_id")
+    amount = data.get("amount")
 
-    @staticmethod
-    def calculate_fee(amount, fee_percent, fee_cap):
-        fee = float(amount) * fee_percent
-        return round(min(fee, fee_cap), 2)
+    if not beneficiary_id or amount is None:
+        return jsonify({"error": "beneficiary_id and a positive amount are required"}), 400
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "sender_wallet_id": self.sender_wallet_id,
-            "receiver_wallet_id": self.receiver_wallet_id,
-            "amount": float(self.amount),
-            "fee": float(self.fee),
-            "type": self.type,
-            "status": self.status,
-            "created_at": self.created_at.isoformat(),
-        }
+    try:
+        amount = _to_decimal(amount)
+    except Exception:
+        return jsonify({"error": "amount must be a valid number"}), 400
+
+    if amount <= 0:
+        return jsonify({"error": "beneficiary_id and a positive amount are required"}), 400
+
+    beneficiary = Beneficiary.query.filter_by(id=beneficiary_id, owner_id=user_id).first()
+    if not beneficiary:
+        return jsonify({"error": "Beneficiary not found"}), 404
+
+    receiver_user = User.query.filter_by(email=beneficiary.account_email).first()
+    if not receiver_user:
+        return jsonify({"error": "Beneficiary's account no longer exists on the platform"}), 404
+
+    # Load both wallets with row locks, ordered by id to avoid deadlocks
+    sender_wallet = (
+        Wallet.query.filter_by(user_id=user_id)
+        .with_for_update()
+        .first_or_404()
+    )
+    receiver_wallet = (
+        Wallet.query.filter_by(user_id=receiver_user.id)
+        .with_for_update()
+        .first_or_404()
+    )
+
+    # Consistent lock order if you ever lock by querying both in one go:
+    # lock lower wallet.id first
+    if sender_wallet.id > receiver_wallet.id:
+        # re-lock in sorted order (optional safety if concurrent paths differ)
+        pass  # already locked individually; ordering below is preferred pattern
+
+    fee = Transaction.calculate_fee(
+        amount,
+        current_app.config["TRANSACTION_FEE_PERCENT"],
+        current_app.config["TRANSACTION_FEE_CAP"],
+    )
+    fee = _to_decimal(fee)
+    total_debit = amount + fee
+
+    sender_balance = _to_decimal(sender_wallet.balance)
+    if sender_balance < total_debit:
+        return jsonify({"error": "Insufficient wallet balance"}), 400
+
+    sender_wallet.balance = sender_balance - total_debit
+    receiver_wallet.balance = _to_decimal(receiver_wallet.balance) + amount
+
+    txn = Transaction(
+        sender_wallet_id=sender_wallet.id,
+        receiver_wallet_id=receiver_wallet.id,
+        amount=amount,
+        fee=fee,
+        type="transfer",
+        status="completed",
+    )
+    db.session.add(txn)
+    db.session.commit()
+
+    return jsonify({
+        "transaction": txn.to_dict(),
+        "wallet": sender_wallet.to_dict(),
+    }), 201
+
+
+@transactions_bp.get("")
+@jwt_required()
+def list_my_transactions():
+    user_id = int(get_jwt_identity())
+    wallet = Wallet.query.filter_by(user_id=user_id).first_or_404()
+
+    txns = (
+        Transaction.query.filter(
+            or_(
+                Transaction.sender_wallet_id == wallet.id,
+                Transaction.receiver_wallet_id == wallet.id,
+            )
+        )
+        .order_by(Transaction.created_at.desc())
+        .all()
+    )
+
+    results = []
+    for t in txns:
+        d = t.to_dict()
+        d["direction"] = "out" if t.sender_wallet_id == wallet.id else "in"
+        results.append(d)
+
+    return jsonify(results)
