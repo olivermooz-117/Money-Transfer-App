@@ -1,3 +1,4 @@
+from decimal import Decimal
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_
@@ -10,6 +11,10 @@ from app.models.transaction import Transaction
 transactions_bp = Blueprint("transactions", __name__)
 
 
+def _to_decimal(value) -> Decimal:
+    return Decimal(str(value))
+
+
 @transactions_bp.post("/send")
 @jwt_required()
 def send_money():
@@ -18,7 +23,15 @@ def send_money():
     beneficiary_id = data.get("beneficiary_id")
     amount = data.get("amount")
 
-    if not beneficiary_id or not amount or float(amount) <= 0:
+    if not beneficiary_id or amount is None:
+        return jsonify({"error": "beneficiary_id and a positive amount are required"}), 400
+
+    try:
+        amount = _to_decimal(amount)
+    except Exception:
+        return jsonify({"error": "amount must be a valid number"}), 400
+
+    if amount <= 0:
         return jsonify({"error": "beneficiary_id and a positive amount are required"}), 400
 
     beneficiary = Beneficiary.query.filter_by(id=beneficiary_id, owner_id=user_id).first()
@@ -29,21 +42,35 @@ def send_money():
     if not receiver_user:
         return jsonify({"error": "Beneficiary's account no longer exists on the platform"}), 404
 
+    if receiver_user.id == user_id:
+        return jsonify({"error": "Cannot send money to yourself"}), 400
+
     sender_wallet = Wallet.query.filter_by(user_id=user_id).first_or_404()
     receiver_wallet = Wallet.query.filter_by(user_id=receiver_user.id).first_or_404()
 
-    fee = Transaction.calculate_fee(
-        amount,
-        current_app.config["TRANSACTION_FEE_PERCENT"],
-        current_app.config["TRANSACTION_FEE_CAP"],
-    )
-    total_debit = float(amount) + fee
+    # Lock wallets in ascending id order to avoid deadlocks
+    first_id, second_id = sorted([sender_wallet.id, receiver_wallet.id])
+    Wallet.query.filter_by(id=first_id).with_for_update().one()
+    Wallet.query.filter_by(id=second_id).with_for_update().one()
 
-    if float(sender_wallet.balance) < total_debit:
+    db.session.refresh(sender_wallet)
+    db.session.refresh(receiver_wallet)
+
+    fee = _to_decimal(
+        Transaction.calculate_fee(
+            amount,
+            current_app.config["TRANSACTION_FEE_PERCENT"],
+            current_app.config["TRANSACTION_FEE_CAP"],
+        )
+    )
+    total_debit = amount + fee
+
+    sender_balance = _to_decimal(sender_wallet.balance)
+    if sender_balance < total_debit:
         return jsonify({"error": "Insufficient wallet balance"}), 400
 
-    sender_wallet.balance = float(sender_wallet.balance) - total_debit
-    receiver_wallet.balance = float(receiver_wallet.balance) + float(amount)
+    sender_wallet.balance = sender_balance - total_debit
+    receiver_wallet.balance = _to_decimal(receiver_wallet.balance) + amount
 
     txn = Transaction(
         sender_wallet_id=sender_wallet.id,
