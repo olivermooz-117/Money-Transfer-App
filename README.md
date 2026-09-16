@@ -1,9 +1,11 @@
 # Money Transfer App
 
-A full-stack fintech wallet & P2P money transfer platform built to solve real problems with existing remittance apps: high fees, complex onboarding, lack of access for the unbanked, weak security, and poor admin visibility.
+A full-stack fintech wallet and P2P money transfer platform with **M-Pesa Daraja STK Push** top-ups.
+
+Built to address high fees, complex onboarding, weak security, and poor admin visibility in typical remittance apps.
 
 **Live Demo:** _coming soon_  
-**Author:** [Oliver Moosberger](https://github.com/olivermooz-117) · olivermooz@gmail.com
+**Author:** [Oliver Moosberger](https://github.com/olivermooz-117)
 
 ---
 
@@ -11,187 +13,57 @@ A full-stack fintech wallet & P2P money transfer platform built to solve real pr
 
 | Problem | How this app addresses it |
 |---------|---------------------------|
-| High transaction fees | Transparent 1% fee, hard-capped at 100 units |
-| Complex onboarding | Register with name + email + password → wallet created instantly |
-| Unbanked / underbanked | No bank account or card required |
-| Security & fraud risk | bcrypt passwords, JWT auth, admin-gated routes |
-| No platform visibility | Full admin dashboard with users, transactions, analytics & monthly fee revenue |
+| High transaction fees | Transparent 1% fee, hard-capped |
+| Complex onboarding | Register → wallet created instantly |
+| Unbanked / underbanked | No bank or card required; M-Pesa top-up |
+| Security & fraud risk | bcrypt, JWT, role-based admin routes |
+| No platform visibility | Admin analytics, users, fee revenue |
 
 ---
 
 ## Tech Stack
 
-**Backend**  
-Python · Flask · Flask-SQLAlchemy · Flask-JWT-Extended · Flask-Bcrypt · PostgreSQL · pytest
+**Backend:** Python · Flask · SQLAlchemy · JWT · PostgreSQL · M-Pesa Daraja · pytest  
 
-**Frontend**  
-React 18 · Redux Toolkit · React Router · Axios · Vite · Jest + React Testing Library
-
-**Design**  
-Mobile-first wireframes (Figma)
+**Frontend:** React 18 · Redux Toolkit · React Router · Axios · Vite  
 
 ---
 
 ## Features
 
 ### User
-- Register / Login
-- Wallet balance + 30-day analytics
-- Add funds
-- Manage beneficiaries
-- Send money (fee shown transparently)
+- Register / Login (JWT)
+- Wallet balance + analytics
+- Top up via **M-Pesa STK Push**
+- Beneficiaries
+- Send money (server-side fee)
 - Transaction history
 
 ### Admin
-- CRUD on all users
-- View every transaction
-- Platform-wide analytics (users, total balance, volume, fees collected)
-- Monthly profit (fee revenue) trends
+- User management
+- All transactions
+- Platform analytics & monthly fee revenue
 
 ---
 
 ## Project Structure
+
+```text
 Money-Transfer-App/
 ├── backend/
 │   ├── app/
-│   │   ├── models/          # User, Wallet, Beneficiary, Transaction
-│   │   ├── routes/          # auth, users, wallet, beneficiaries, transactions, admin
-│   │   ├── utils/           # admin_required decorator
+│   │   ├── models/       # User, Wallet, Beneficiary, Transaction, MpesaDeposit
+│   │   ├── routes/       # auth, users, wallet, beneficiaries, transactions, admin, mpesa
+│   │   ├── services/     # mpesa.py (Daraja STK Push)
+│   │   ├── utils/
 │   │   ├── config.py
 │   │   └── extensions.py
 │   ├── tests/
 │   ├── seed.py
 │   └── run.py
 └── frontend/
-├── src/
-│   ├── api/
-│   ├── app/             # Redux store
-│   ├── features/        # auth, wallet, beneficiaries, transactions, admin
-│   └── components/
-└── package.json
-text---
-
-## Quick Start
-
-### 1. Backend
-
-```bash
-cd backend
-cp .env.example .env
-# Edit .env → set DATABASE_URL and a strong JWT_SECRET_KEY
-
-pipenv install && pipenv shell
-# or: python3 -m venv venv && source venv/bin/activate && pip install flask flask-sqlalchemy flask-migrate flask-jwt-extended flask-bcrypt flask-cors psycopg2-binary python-dotenv pytest
-
-python seed.py
-python run.py
-# → http://localhost:5000/api/health
-Demo logins:
-
-admin@moneyapp.com / Admin123!
-oliver@example.com / Password123!
-jane@example.com / Password123!
-
-2. Frontend
-Bashcd frontend
-cp .env.example .env
-# Confirm VITE_API_URL=http://localhost:5000/api
-
-npm install
-npm run dev
-# → http://localhost:5173
-3. Tests
-Bashcd backend && python -m pytest -v
-cd frontend && npm test
-
-API Overview
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-MethodEndpointAuthDescriptionPOST/api/auth/register—Create user + walletPOST/api/auth/login—Get JWTGET/api/walletuserBalance + analyticsPOST/api/wallet/add-fundsuserTop upGET/POST/api/beneficiariesuserList / addPOST/api/transactions/senduserSend moneyGET/api/transactionsuserOwn historyGET/api/admin/usersadminAll usersGET/api/admin/analyticsadminPlatform totalsGET/api/admin/profit-trendsadminMonthly fee revenue
-
-Architecture Decisions
-
-Wallet-first model — every user gets a wallet on registration.
-Transparent low fees — 1% with hard cap, calculated server-side.
-JWT + role claims — admin routes protected by is_admin claim.
-Feature-sliced frontend — Redux Toolkit slices mirror domain boundaries.
-Atomic transfers — money movement uses database row locking to prevent race conditions.
-
----
-
-## M-Pesa (Daraja) top-ups
-
-- POST /api/mpesa/deposit — start STK Push (auth required)
-- POST /api/mpesa/callback — Safaricom webhook
-- GET /api/mpesa/deposit/<checkout_request_id> — poll status
-- Sandbox test phone: 254708374149
-- For local callbacks use ngrok and set MPESA_CALLBACK_URL
+    └── src/
+        ├── api/
+        ├── app/          # Redux store
+        ├── features/     # auth, wallet, beneficiaries, transactions, admin
+        └── components/

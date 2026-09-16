@@ -1,6 +1,21 @@
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+
 .env
 .venv/
+venv/
+env/
+
 instance/
 .pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+Pipfile.lock
+# optional: some teams commit Pipfile.lock for reproducible installs
+# remove the line above if you want to commit the lock file
