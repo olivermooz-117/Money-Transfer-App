@@ -10,7 +10,7 @@ beneficiaries_bp = Blueprint("beneficiaries", __name__)
 @beneficiaries_bp.get("")
 @jwt_required()
 def list_beneficiaries():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     beneficiaries = Beneficiary.query.filter_by(owner_id=user_id).all()
     return jsonify([b.to_dict() for b in beneficiaries])
 
@@ -18,7 +18,7 @@ def list_beneficiaries():
 @beneficiaries_bp.post("")
 @jwt_required()
 def add_beneficiary():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json() or {}
     name = data.get("name")
     account_email = data.get("account_email")
@@ -41,7 +41,7 @@ def add_beneficiary():
 @beneficiaries_bp.delete("/<int:beneficiary_id>")
 @jwt_required()
 def delete_beneficiary(beneficiary_id):
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     beneficiary = Beneficiary.query.filter_by(id=beneficiary_id, owner_id=user_id).first_or_404()
     db.session.delete(beneficiary)
     db.session.commit()

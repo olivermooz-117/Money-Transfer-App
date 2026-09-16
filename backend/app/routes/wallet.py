@@ -12,7 +12,7 @@ wallet_bp = Blueprint("wallet", __name__)
 @wallet_bp.get("")
 @jwt_required()
 def get_wallet():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     wallet = Wallet.query.filter_by(user_id=user_id).first_or_404()
 
     thirty_days_ago = datetime.utcnow() - timedelta(days=30)
@@ -45,7 +45,7 @@ def get_wallet():
 @wallet_bp.post("/add-funds")
 @jwt_required()
 def add_funds():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json() or {}
     amount = data.get("amount")
 

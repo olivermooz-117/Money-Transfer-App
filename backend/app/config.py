@@ -22,9 +22,4 @@ class Config:
     MPESA_SHORTCODE = os.environ.get("MPESA_SHORTCODE", "174379")
     MPESA_PASSKEY = os.environ.get("MPESA_PASSKEY")
     MPESA_CALLBACK_URL = os.environ.get("MPESA_CALLBACK_URL")
-
-    @property
-    def MPESA_BASE_URL(self):
-        if self.MPESA_ENV == "production":
-            return "https://api.safaricom.co.ke"
-        return "https://sandbox.safaricom.co.ke"
+    MPESA_BASE_URL = "https://api.safaricom.co.ke" if MPESA_ENV == "production" else "https://sandbox.safaricom.co.ke"

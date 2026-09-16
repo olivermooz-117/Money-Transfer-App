@@ -185,3 +185,13 @@ Transparent low fees — 1% with hard cap, calculated server-side.
 JWT + role claims — admin routes protected by is_admin claim.
 Feature-sliced frontend — Redux Toolkit slices mirror domain boundaries.
 Atomic transfers — money movement uses database row locking to prevent race conditions.
+
+---
+
+## M-Pesa (Daraja) top-ups
+
+- POST /api/mpesa/deposit — start STK Push (auth required)
+- POST /api/mpesa/callback — Safaricom webhook
+- GET /api/mpesa/deposit/<checkout_request_id> — poll status
+- Sandbox test phone: 254708374149
+- For local callbacks use ngrok and set MPESA_CALLBACK_URL

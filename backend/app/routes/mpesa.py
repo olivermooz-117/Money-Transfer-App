@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import exc
+from decimal import Decimal
 from app.extensions import db
 from app.models.mpesa_deposit import MpesaDeposit
 from app.models.wallet import Wallet
@@ -14,7 +15,7 @@ mpesa_bp = Blueprint("mpesa", __name__)
 @jwt_required()
 def initiate_deposit():
     """Initiate M-Pesa STK Push for wallet top-up."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json() or {}
     phone = data.get("phone")
     amount = data.get("amount")
@@ -87,6 +88,10 @@ def mpesa_callback():
         current_app.logger.warning("Deposit not found for CheckoutRequestID: %s", checkout_request_id)
         return jsonify({"ResultCode": 0, "ResultDesc": "Accepted"})
 
+    # Already processed - return early
+    if deposit.status == "success":
+        return jsonify({"ResultCode": 0, "ResultDesc": "Accepted"})
+
     deposit.result_desc = result_desc
 
     if result_code == 0:
@@ -108,13 +113,15 @@ def mpesa_callback():
         try:
             wallet = Wallet.query.filter_by(user_id=deposit.user_id).with_for_update().first()
             if wallet:
-                wallet.balance = float(wallet.balance) + float(deposit.amount)
+                # Prefer received_amount from callback metadata, fallback to deposit.amount
+                credit_amount = Decimal(str(received_amount)) if received_amount is not None else deposit.amount
+                wallet.balance = Decimal(str(wallet.balance)) + credit_amount
 
                 # Create transaction record
                 txn = Transaction(
                     sender_wallet_id=None,
                     receiver_wallet_id=wallet.id,
-                    amount=deposit.amount,
+                    amount=credit_amount,
                     fee=0,
                     type="deposit",
                     status="completed",
@@ -137,7 +144,7 @@ def mpesa_callback():
 @jwt_required()
 def get_deposit_status(checkout_request_id):
     """Poll deposit status by CheckoutRequestID (owner only)."""
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     deposit = MpesaDeposit.query.filter_by(checkout_request_id=checkout_request_id).first()
 
     if not deposit:

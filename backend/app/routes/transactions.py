@@ -13,7 +13,7 @@ transactions_bp = Blueprint("transactions", __name__)
 @transactions_bp.post("/send")
 @jwt_required()
 def send_money():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     data = request.get_json() or {}
     beneficiary_id = data.get("beneficiary_id")
     amount = data.get("amount")
@@ -65,7 +65,7 @@ def send_money():
 @transactions_bp.get("")
 @jwt_required()
 def list_my_transactions():
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     wallet = Wallet.query.filter_by(user_id=user_id).first_or_404()
 
     txns = (
