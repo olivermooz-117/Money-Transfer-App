@@ -9,14 +9,14 @@ users_bp = Blueprint("users", __name__)
 @users_bp.get("/me")
 @jwt_required()
 def get_me():
-    user = User.query.get_or_404(get_jwt_identity())
+    user = User.query.get_or_404(int(get_jwt_identity()))
     return jsonify(user.to_dict(include_wallet=True))
 
 
 @users_bp.put("/me")
 @jwt_required()
 def update_me():
-    user = User.query.get_or_404(get_jwt_identity())
+    user = User.query.get_or_404(int(get_jwt_identity()))
     data = request.get_json() or {}
 
     if "full_name" in data:
