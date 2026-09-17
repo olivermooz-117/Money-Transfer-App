@@ -7,6 +7,13 @@ from app.config import Config
 class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     TESTING = True
+    MPESA_ENV = "sandbox"
+    MPESA_CONSUMER_KEY = "test-key"
+    MPESA_CONSUMER_SECRET = "test-secret"
+    MPESA_SHORTCODE = "174379"
+    MPESA_PASSKEY = "test-passkey"
+    MPESA_CALLBACK_URL = "https://example.com/api/mpesa/callback"
+    MPESA_BASE_URL = "https://sandbox.safaricom.co.ke"
 
 
 @pytest.fixture
