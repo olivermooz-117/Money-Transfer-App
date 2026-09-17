@@ -2,6 +2,7 @@ import pytest
 from app import create_app
 from app.extensions import db as _db
 from app.config import Config
+from app.models.user import User
 
 
 class TestConfig(Config):
@@ -39,6 +40,24 @@ def auth_headers(client):
             "/api/auth/register",
             json={"full_name": "Test User", "email": email, "password": password},
         )
+        res = client.post("/api/auth/login", json={"email": email, "password": password})
+        token = res.get_json()["token"]
+        return {"Authorization": f"Bearer {token}"}
+    return _make
+
+
+@pytest.fixture
+def admin_headers(client, app):
+    """Registers a user, promotes to admin, logs in so JWT has is_admin claim."""
+    def _make(email="admin@test.com", password="Password123!"):
+        client.post(
+            "/api/auth/register",
+            json={"full_name": "Admin User", "email": email, "password": password},
+        )
+        with app.app_context():
+            user = User.query.filter_by(email=email).first()
+            user.is_admin = True
+            _db.session.commit()
         res = client.post("/api/auth/login", json={"email": email, "password": password})
         token = res.get_json()["token"]
         return {"Authorization": f"Bearer {token}"}
