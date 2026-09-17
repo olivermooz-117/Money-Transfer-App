@@ -163,10 +163,11 @@ def test_callback_idempotent(client, auth_headers, app):
 
     with app.app_context():
         user = User.query.filter_by(email="mpesa4@test.com").first()
-        wallet = Wallet.query.filter_by(user_id=user.id).first()
+        user_id = user.id  # capture while attached to session
+        wallet = Wallet.query.filter_by(user_id=user_id).first()
         wallet.balance = 100
         deposit = MpesaDeposit(
-            user_id=user.id,
+            user_id=user_id,
             phone="254712345678",
             amount=30,
             checkout_request_id="ws_CO_IDEM_1",
@@ -195,9 +196,8 @@ def test_callback_idempotent(client, auth_headers, app):
     client.post("/api/mpesa/callback", json=payload)
 
     with app.app_context():
-        wallet = Wallet.query.filter_by(user_id=user.id).first()
+        wallet = Wallet.query.filter_by(user_id=user_id).first()
         assert float(wallet.balance) == bal_before  # not credited again
-
 
 def test_deposit_status_owner_only(client, auth_headers, app):
     h1 = auth_headers(email="owner@test.com")
