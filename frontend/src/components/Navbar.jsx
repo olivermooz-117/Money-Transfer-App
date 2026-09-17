@@ -10,15 +10,18 @@ export default function Navbar() {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate("/login");
+    navigate("/");
   };
 
   return (
     <div className="navbar">
       <div>
-        <Link to="/dashboard">Dashboard</Link>
+        <Link to={user ? "/dashboard" : "/"} className="nav-brand">
+          Money Transfer
+        </Link>
         {user && (
           <>
+            <Link to="/dashboard">Dashboard</Link>
             <Link to="/beneficiaries">Beneficiaries</Link>
             <Link to="/transactions">Transactions</Link>
             {user.is_admin && (
@@ -31,11 +34,18 @@ export default function Navbar() {
           </>
         )}
       </div>
-      <div>
+      <div className="nav-actions">
         {user ? (
-          <button onClick={handleLogout}>Log out</button>
+          <button type="button" onClick={handleLogout}>
+            Log out
+          </button>
         ) : (
-          <Link to="/login">Log in</Link>
+          <>
+            <Link to="/login">Log in</Link>
+            <Link to="/register" className="nav-cta">
+              Get started
+            </Link>
+          </>
         )}
       </div>
     </div>
