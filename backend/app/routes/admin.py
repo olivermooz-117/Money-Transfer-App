@@ -1,4 +1,3 @@
-from datetime import datetime
 from flask import Blueprint, request, jsonify
 from sqlalchemy import func, extract
 from app.extensions import db
@@ -22,7 +21,9 @@ def list_users():
 @admin_bp.put("/users/<int:user_id>")
 @admin_required
 def update_user(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     data = request.get_json() or {}
 
     if "full_name" in data:
@@ -39,7 +40,9 @@ def update_user(user_id):
 @admin_bp.delete("/users/<int:user_id>")
 @admin_required
 def delete_user(user_id):
-    user = User.query.get_or_404(user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
     db.session.delete(user)
     db.session.commit()
     return jsonify({"message": "User deleted"})

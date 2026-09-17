@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, current_app
+from datetime import datetime, timedelta, timezone
+from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import or_
 from app.extensions import db
@@ -9,13 +9,22 @@ from app.models.transaction import Transaction
 wallet_bp = Blueprint("wallet", __name__)
 
 
+def _as_utc(dt):
+    """Normalize naive/aware datetimes for safe comparison (SQLite often stores naive)."""
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 @wallet_bp.get("")
 @jwt_required()
 def get_wallet():
     user_id = int(get_jwt_identity())
     wallet = Wallet.query.filter_by(user_id=user_id).first_or_404()
 
-    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
     txns = Transaction.query.filter(
         or_(
             Transaction.sender_wallet_id == wallet.id,
@@ -29,7 +38,9 @@ def get_wallet():
     total_received = sum(
         float(t.amount) for t in txns if t.receiver_wallet_id == wallet.id
     )
-    recent_count = sum(1 for t in txns if t.created_at >= thirty_days_ago)
+    recent_count = sum(
+        1 for t in txns if _as_utc(t.created_at) is not None and _as_utc(t.created_at) >= thirty_days_ago
+    )
 
     return jsonify({
         "wallet": wallet.to_dict(),

@@ -26,7 +26,10 @@ def add_beneficiary():
     if not all([name, account_email]):
         return jsonify({"error": "name and account_email are required"}), 400
 
-    if account_email == User.query.get(user_id).email:
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    if account_email == user.email:
         return jsonify({"error": "You cannot add yourself as a beneficiary"}), 400
 
     if not User.query.filter_by(email=account_email).first():

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from app.extensions import db
 
 
@@ -14,8 +14,12 @@ class MpesaDeposit(db.Model):
     mpesa_receipt = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(20), default="pending", nullable=False)  # pending, success, failed
     result_desc = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     user = db.relationship("User", backref=db.backref("mpesa_deposits", lazy=True))
 

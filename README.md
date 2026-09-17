@@ -36,7 +36,7 @@ Built to address high fees, complex onboarding, weak security, and poor admin vi
 - Wallet balance + analytics
 - Top up via **M-Pesa STK Push**
 - Beneficiaries
-- Send money (server-side fee)
+- Send money (server-side fee, row locks + Decimal)
 - Transaction history
 
 ### Admin
@@ -58,7 +58,7 @@ Money-Transfer-App/
 │   │   ├── utils/
 │   │   ├── config.py
 │   │   └── extensions.py
-│   ├── tests/
+│   ├── tests/            # 30 pytest cases
 │   ├── seed.py
 │   └── run.py
 └── frontend/
